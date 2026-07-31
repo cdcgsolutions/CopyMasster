@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CopyMaster</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS Archivos Separados -->
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="ModalCreacionEdicionCategorias.css">
+    <link rel="stylesheet" href="ModalCrearVerApuntes.css">
+    <link rel="stylesheet" href="VerContenidoApunte.css">
+</head>
+<body class="dark-theme">
+    
+    <div class="app-background">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <h1>CopyMaster</h1>
+            </div>
+            <button id="theme-toggle" class="icon-btn" title="Cambiar Tema">
+                <i class="fa-solid fa-sun"></i>
+            </button>
+        </header>
+
+        <!-- VIEW 1: Dashboard (Categorías) -->
+        <main id="dashboard-view" class="view active fade-in">
+            <div class="view-header">
+                <h2>Mis Categorías</h2>
+                <button id="btn-open-category-modal" class="primary-btn">
+                    <i class="fa-solid fa-plus"></i> Nueva Categoría
+                </button>
+            </div>
+            
+            <div id="categories-grid" class="grid-container">
+                <!-- Las categorías se insertarán aquí dinámicamente -->
+            </div>
+        </main>
+
+        <!-- VIEW 2: Category (Lista de Notas) -->
+        <main id="category-view" class="view fade-in" style="display: none;">
+            <div class="view-header">
+                <button id="btn-back-dashboard" class="icon-btn back-btn">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 id="current-category-title">Categoría</h2>
+                <button id="btn-open-note-modal" class="primary-btn">
+                    <i class="fa-solid fa-plus"></i> Nuevo Apunte
+                </button>
+            </div>
+            
+            <div id="notes-grid" class="notes-grid">
+                <!-- Las notas se insertarán aquí dinámicamente -->
+            </div>
+        </main>
+
+        <!-- VIEW 3: Ver Apunte -->
+        <main id="view-apunte" class="view fade-in" style="display: none;">
+            <!-- El contenido se inyectará aquí -->
+        </main>
+
+    </div>
+
+    <!-- CONTENEDORES PARA INYECTAR LOS MODALES SEPARADOS -->
+    <div id="modal-container-categorias"></div>
+    <div id="modal-container-apuntes"></div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- JS Archivos Separados -->
+    <script src="ModalCreacionEdicionCategorias.js"></script>
+    <script src="ModalCrearVerApuntes.js"></script>
+    <script src="VerContenidoApunte.js"></script>
+    <script src="home.js"></script>
+</body>
+</html>

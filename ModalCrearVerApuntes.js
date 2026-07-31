@@ -1,0 +1,92 @@
+// ModalCrearVerApuntes.js
+
+window.initNoteModal = function() {
+    const modal = document.getElementById('modal-note');
+    const modalTitle = document.getElementById('note-modal-title');
+    const noteTitleInput = document.getElementById('note-title-input');
+    const noteContentInput = document.getElementById('note-content-input');
+    
+    const btnClose = document.getElementById('btn-close-note-modal');
+    const btnSave = document.getElementById('btn-save-note');
+    const btnDelete = document.getElementById('btn-delete-note');
+    const btnCopy = document.getElementById('btn-copy-note');
+
+    let currentEditingNoteId = null;
+
+    // Funciones públicas
+    window.openNoteModal = function(note = null) {
+        if (note) {
+            // Modo Edición
+            currentEditingNoteId = note.id;
+            modalTitle.textContent = 'Editar Apunte';
+            noteTitleInput.value = note.title;
+            noteContentInput.value = note.content;
+            btnDelete.style.display = 'block';
+            btnCopy.style.display = 'block';
+        } else {
+            // Modo Creación
+            currentEditingNoteId = null;
+            modalTitle.textContent = 'Nuevo Apunte';
+            noteTitleInput.value = '';
+            noteContentInput.value = '';
+            btnDelete.style.display = 'none';
+            btnCopy.style.display = 'none';
+        }
+        modal.classList.add('active');
+    };
+
+    window.closeNoteModal = function() {
+        modal.classList.remove('active');
+        currentEditingNoteId = null;
+    };
+
+    // Eventos
+    btnClose.addEventListener('click', window.closeNoteModal);
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            window.closeNoteModal();
+        }
+    });
+
+    btnSave.addEventListener('click', () => {
+        const title = noteTitleInput.value.trim();
+        const content = noteContentInput.value.trim();
+        
+        if (!content) {
+            if(window.showToast) window.showToast('El contenido no puede estar vacío');
+            return;
+        }
+        
+        const noteData = {
+            id: currentEditingNoteId,
+            title: title || 'Sin título',
+            content: content
+        };
+
+        if(window.saveNoteToApp) {
+            window.saveNoteToApp(noteData);
+        }
+        
+        window.closeNoteModal();
+    });
+
+    btnDelete.addEventListener('click', () => {
+        if (confirm('¿Estás seguro de eliminar este apunte?')) {
+            if(window.deleteNoteFromApp) {
+                window.deleteNoteFromApp(currentEditingNoteId);
+            }
+            window.closeNoteModal();
+        }
+    });
+
+    btnCopy.addEventListener('click', () => {
+        const content = noteContentInput.value;
+        navigator.clipboard.writeText(content).then(() => {
+            if(window.showToast) window.showToast('¡Copiado al portapapeles!');
+        }).catch(err => {
+            console.error('Error al copiar', err);
+            if(window.showToast) window.showToast('Error al copiar');
+        });
+    });
+};

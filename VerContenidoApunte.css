@@ -1,0 +1,35 @@
+/* VerContenidoApunte.css */
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.apunte-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    min-height: 60vh;
+}
+
+.apunte-title-input {
+    font-size: 1.5rem;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+.apunte-textarea {
+    flex-grow: 1;
+    min-height: 400px;
+    font-size: 1.1rem;
+    padding: 1.5rem;
+    overflow-y: hidden; /* Evitar scroll interno */
+    resize: none; /* Evitar redimensionamiento manual */
+}

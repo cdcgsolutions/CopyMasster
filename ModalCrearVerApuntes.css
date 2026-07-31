@@ -1,0 +1,19 @@
+/* ModalCrearVerApuntes.css */
+/* Nota: La mayoría de los estilos del modal provienen de home.css (.modal, .glass-panel, etc.) 
+   para mantener consistencia. Aquí solo ponemos lo específico de este modal. */
+
+.note-textarea {
+    min-height: 300px;
+    resize: vertical;
+    font-family: monospace;
+    line-height: 1.5;
+}
+
+.note-footer {
+    justify-content: space-between;
+}
+
+.note-actions {
+    display: flex;
+    gap: 1rem;
+}
