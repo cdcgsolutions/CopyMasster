@@ -436,8 +436,29 @@ window.showVerApunte = function (note) {
 
 // --- FIREBASE CRUD API PARA LOS MODALES SEPARADOS ---
 
+window.isGlobalLoading = false;
+
+window.showGlobalSpinner = function(message = 'Guardando cambios...', iconClass = 'fa-solid fa-cloud-arrow-up') {
+    window.isGlobalLoading = true;
+    const overlay = document.getElementById('global-spinner-overlay');
+    const textEl = document.getElementById('global-spinner-text');
+    const iconEl = document.getElementById('global-spinner-icon');
+    if (textEl) textEl.textContent = message;
+    if (iconEl) iconEl.className = iconClass;
+    if (overlay) overlay.classList.add('active');
+};
+
+window.hideGlobalSpinner = function() {
+    window.isGlobalLoading = false;
+    const overlay = document.getElementById('global-spinner-overlay');
+    if (overlay) overlay.classList.remove('active');
+};
+
 window.saveCategoryToApp = async function (catData) {
     try {
+        if (window.showGlobalSpinner) {
+            window.showGlobalSpinner(catData.id ? 'Actualizando categoría...' : 'Creando categoría...', 'fa-solid fa-folder-open');
+        }
         if (catData.id) {
             // Update
             const catRef = doc(db, "categories", catData.id);
@@ -470,14 +491,19 @@ window.saveCategoryToApp = async function (catData) {
         if (currentCategoryId === (catData.id || appData.categories[appData.categories.length-1].id)) {
             currentCategoryTitle.textContent = catData.title;
         }
+        return true;
     } catch (error) {
         console.error("Error guardando categoría:", error);
         showToast("Error guardando categoría", true);
+        return false;
+    } finally {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 
 window.deleteCategoryFromApp = async function (catId) {
     try {
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Eliminando categoría...', 'fa-solid fa-trash-can');
         await deleteDoc(doc(db, "categories", catId));
         
         appData.categories = appData.categories.filter(c => c.id !== catId);
@@ -486,14 +512,21 @@ window.deleteCategoryFromApp = async function (catId) {
         renderDashboard();
         showDashboard();
         showToast('Categoría eliminada');
+        return true;
     } catch (error) {
         console.error("Error eliminando categoría:", error);
         showToast("Error eliminando categoría", true);
+        return false;
+    } finally {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 
 window.saveNoteToApp = async function (noteData) {
     try {
+        if (window.showGlobalSpinner) {
+            window.showGlobalSpinner(noteData.id ? 'Actualizando apunte...' : 'Guardando apunte...', 'fa-solid fa-file-pen');
+        }
         if (noteData.id) {
             // Actualizar
             const noteRef = doc(db, "notes", noteData.id);
@@ -525,22 +558,31 @@ window.saveNoteToApp = async function (noteData) {
         }
         renderNotes();
         renderDashboard();
+        return true;
     } catch (error) {
         console.error("Error guardando apunte:", error);
         showToast("Error guardando apunte", true);
+        return false;
+    } finally {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 
 window.deleteNoteFromApp = async function (noteId) {
     try {
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Eliminando apunte...', 'fa-solid fa-trash-can');
         await deleteDoc(doc(db, "notes", noteId));
         appData.notes = appData.notes.filter(n => n.id !== noteId);
         renderNotes();
         renderDashboard();
         showToast('Apunte eliminado');
+        return true;
     } catch (error) {
         console.error("Error eliminando apunte:", error);
         showToast("Error eliminando apunte", true);
+        return false;
+    } finally {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 

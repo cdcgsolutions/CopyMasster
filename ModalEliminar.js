@@ -17,7 +17,8 @@ window.initDeleteModal = function() {
         modal.classList.add('active');
     };
 
-    window.closeDeleteModal = function() {
+    window.closeDeleteModal = function(force = false) {
+        if (window.isGlobalLoading && force !== true) return;
         modal.classList.remove('active');
         confirmCallback = null;
     };
@@ -42,6 +43,6 @@ window.initDeleteModal = function() {
             btnConfirm.disabled = false;
             btnConfirm.innerHTML = originalHtml;
         }
-        window.closeDeleteModal();
+        window.closeDeleteModal(true);
     });
 };

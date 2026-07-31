@@ -84,7 +84,8 @@ window.initCategoryModal = function() {
         if(!isIconsLoaded) fetchAllIcons();
     };
 
-    window.closeCategoryModal = function() {
+    window.closeCategoryModal = function(force = false) {
+        if (window.isGlobalLoading && force !== true) return;
         modal.classList.remove('active');
         iconDropdown.style.display = 'none';
     };
@@ -186,13 +187,14 @@ window.initCategoryModal = function() {
                 btnSave.disabled = true;
                 btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
                 
-                await window.saveCategoryToApp(catData);
+                const success = await window.saveCategoryToApp(catData);
                 
                 btnSave.disabled = false;
                 btnSave.innerHTML = originalHtml;
+                if (success === false) return;
             }
             
-            window.closeCategoryModal();
+            window.closeCategoryModal(true);
         } else {
             if(window.showToast) window.showToast('El nombre no puede estar vacío', true);
         }

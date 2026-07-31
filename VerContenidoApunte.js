@@ -49,10 +49,11 @@ window.initVerApunteView = function() {
                 'Eliminar Apunte',
                 '¿Estás seguro de eliminar este apunte? Esta acción no se puede deshacer.',
                 async () => {
+                    let success = true;
                     if(window.deleteNoteFromApp) {
-                        await window.deleteNoteFromApp(currentApunteId);
+                        success = await window.deleteNoteFromApp(currentApunteId);
                     }
-                    if(window.showCategory && window.getCurrentCategoryId) {
+                    if(success !== false && window.showCategory && window.getCurrentCategoryId) {
                         window.showCategory(window.getCurrentCategoryId());
                     }
                 }
