@@ -8,11 +8,24 @@
             </button>
         </div>
         <div class="modal-body">
-            <input type="text" id="category-title-input" placeholder="Nombre de la categoría (ej. Mis Scripts)" class="glass-input">
+            <div class="input-group">
+                <label>Nombre</label>
+                <input type="text" id="category-title-input" placeholder="Nombre de la categoría (ej. Mis Scripts)" class="glass-input">
+            </div>
+            <div class="input-group">
+                <label>Icono</label>
+                <div class="icon-input-wrapper">
+                    <input type="text" id="category-icon-input" placeholder="ej. fa-solid fa-code" class="glass-input" autocomplete="off">
+                    <i id="icon-preview" class="fa-solid fa-folder"></i>
+                </div>
+                <div id="icon-dropdown" class="icon-dropdown" style="display: none;">
+                    <!-- Grid de iconos inyectado por JS -->
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button id="btn-save-category" class="primary-btn">
-                <i class="fa-solid fa-check"></i> Guardar Categoría
+                <i class="fa-solid fa-check"></i> <span class="btn-text-long">Guardar Categoría</span><span class="btn-text-short">Guardar</span>
             </button>
         </div>
     </div>

@@ -44,12 +44,27 @@ window.initVerApunteView = function() {
     });
 
     btnDelete.addEventListener('click', () => {
-        if (confirm('¿Estás seguro de eliminar este apunte?')) {
-            if(window.deleteNoteFromApp) {
-                window.deleteNoteFromApp(currentApunteId);
-            }
-            if(window.showCategory && window.getCurrentCategoryId) {
-                window.showCategory(window.getCurrentCategoryId());
+        if (window.openDeleteModal) {
+            window.openDeleteModal(
+                'Eliminar Apunte',
+                '¿Estás seguro de eliminar este apunte? Esta acción no se puede deshacer.',
+                () => {
+                    if(window.deleteNoteFromApp) {
+                        window.deleteNoteFromApp(currentApunteId);
+                    }
+                    if(window.showCategory && window.getCurrentCategoryId) {
+                        window.showCategory(window.getCurrentCategoryId());
+                    }
+                }
+            );
+        } else {
+            if(confirm('¿Estás seguro de eliminar este apunte?')) {
+                if(window.deleteNoteFromApp) {
+                    window.deleteNoteFromApp(currentApunteId);
+                }
+                if(window.showCategory && window.getCurrentCategoryId) {
+                    window.showCategory(window.getCurrentCategoryId());
+                }
             }
         }
     });

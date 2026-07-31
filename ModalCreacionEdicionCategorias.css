@@ -56,8 +56,8 @@
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    overflow-y: auto;
+    gap: 1.5rem;
+    overflow: visible; /* Permitir que el dropdown sobresalga */
 }
 
 .modal-footer {
@@ -65,6 +65,26 @@
     border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+}
+
+/* Campos de entrada */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.input-group label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+}
+
+.icon-input-wrapper {
+    position: relative;
+    display: flex;
     align-items: center;
 }
 
@@ -79,7 +99,104 @@
     outline: none;
 }
 
+.icon-input-wrapper .glass-input {
+    padding-right: 3rem;
+}
+
 .glass-input:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+#icon-preview {
+    position: absolute;
+    right: 1rem;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+/* Dropdown de Iconos */
+.icon-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    width: 100%;
+    max-height: 250px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(30px);
+    overflow-y: auto;
+    z-index: 10;
+    
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+/* Scrollbar personalizado para el dropdown */
+.icon-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+.icon-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+.icon-dropdown::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 10px;
+}
+
+.icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+    text-align: center;
+}
+
+.icon-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-item i {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+.icon-item span {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    word-break: break-all;
+    line-height: 1.2;
+}
+
+/* --- RESPONSIVE DESIGN --- */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        max-width: 100%;
+        margin: 1rem;
+    }
+    .icon-dropdown {
+        grid-template-columns: repeat(3, 1fr);
+        max-height: 200px;
+    }
+    .modal-header h3 {
+        font-size: 1.2rem;
+    }
+    .icon-item i {
+        font-size: 1.2rem;
+    }
+}
+@media (max-width: 480px) {
+    .icon-dropdown {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }

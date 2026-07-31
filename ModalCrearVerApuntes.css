@@ -17,3 +17,23 @@
     display: flex;
     gap: 1rem;
 }
+
+/* --- RESPONSIVE DESIGN --- */
+@media (max-width: 768px) {
+    .note-footer {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    #btn-copy-note {
+        width: 100%;
+        justify-content: center;
+    }
+    .note-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .note-actions button {
+        flex: 1;
+        justify-content: center;
+    }
+}

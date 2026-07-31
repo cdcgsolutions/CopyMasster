@@ -35,10 +35,10 @@ async function initApp() {
     if (savedData) {
         appData = JSON.parse(savedData);
     }
-    
+
     // 2. Aplicar Tema
     applyTheme(appData.theme);
-    
+
     // 3. Cargar Modales HTML separados dinámicamente
     await loadModals();
 
@@ -49,36 +49,22 @@ async function initApp() {
 
 async function loadModals() {
     try {
-        // Fetch Modal Categorias
-        const catRes = await fetch('ModalCreacionEdicionCategorias.html');
-        if (catRes.ok) {
-            const catHtml = await catRes.text();
-            document.getElementById('modal-container-categorias').innerHTML = catHtml;
-            // Inicializar el JS de este modal
-            if (window.initCategoryModal) window.initCategoryModal();
-        } else {
-            console.warn("No se pudo cargar ModalCreacionEdicionCategorias.html. Recuerda usar un servidor local (Live Server).");
-        }
+        const [catRes, noteRes, verApunteRes, delRes] = await Promise.all([
+            fetch('ModalCreacionEdicionCategorias.html'),
+            fetch('ModalCrearVerApuntes.html'),
+            fetch('VerContenidoApunte.html'),
+            fetch('ModalEliminar.html')
+        ]);
 
-        // Fetch Modal Apuntes
-        const noteRes = await fetch('ModalCrearVerApuntes.html');
-        if (noteRes.ok) {
-            const noteHtml = await noteRes.text();
-            document.getElementById('modal-container-apuntes').innerHTML = noteHtml;
-            if (window.initNoteModal) window.initNoteModal();
-        } else {
-            console.warn("No se pudo cargar ModalCrearVerApuntes.html");
-        }
+        document.getElementById('modal-category-container').innerHTML = await catRes.text();
+        document.getElementById('modal-note-container').innerHTML = await noteRes.text();
+        viewApunte.innerHTML = await verApunteRes.text();
+        document.getElementById('modal-delete-container').innerHTML = await delRes.text();
 
-        // Fetch VerContenidoApunte View
-        const verApunteRes = await fetch('VerContenidoApunte.html');
-        if (verApunteRes.ok) {
-            const verApunteHtml = await verApunteRes.text();
-            viewApunte.innerHTML = verApunteHtml;
-            if (window.initVerApunteView) window.initVerApunteView();
-        } else {
-            console.warn("No se pudo cargar VerContenidoApunte.html");
-        }
+        if (window.initCategoryModal) window.initCategoryModal();
+        if (window.initNoteModal) window.initNoteModal();
+        if (window.initVerApunteView) window.initVerApunteView();
+        if (window.initDeleteModal) window.initDeleteModal();
     } catch (e) {
         console.error("Error cargando los modales. Asegúrate de ejecutar esto en un servidor (ej. Live Server en VSCode) y no abriendo el archivo directamente con doble clic.", e);
         showToast("Error de CORS: Usa Live Server para cargar los modales.", true);
@@ -111,13 +97,13 @@ themeToggle.addEventListener('click', () => {
 // --- NAVIGATION ---
 function showDashboard() {
     categoryView.style.display = 'none';
-    if(viewApunte) viewApunte.style.display = 'none';
+    if (viewApunte) viewApunte.style.display = 'none';
     dashboardView.style.display = 'block';
-    
+
     dashboardView.classList.remove('fade-in');
-    void dashboardView.offsetWidth; 
+    void dashboardView.offsetWidth;
     dashboardView.classList.add('fade-in');
-    
+
     currentCategoryId = null;
     renderDashboard();
 }
@@ -126,35 +112,88 @@ function showCategory(categoryId) {
     currentCategoryId = categoryId;
     const cat = appData.categories.find(c => c.id === categoryId);
     currentCategoryTitle.textContent = cat.title;
-    
+
     dashboardView.style.display = 'none';
-    if(viewApunte) viewApunte.style.display = 'none';
+    if (viewApunte) viewApunte.style.display = 'none';
     categoryView.style.display = 'block';
-    
+
     categoryView.classList.remove('fade-in');
     void categoryView.offsetWidth;
     categoryView.classList.add('fade-in');
-    
+
     renderNotes();
 }
 
 window.showCategory = showCategory; // Exponer al window para llamarlo desde VerContenidoApunte.js
 window.getCurrentCategoryId = () => currentCategoryId;
+window.getCategoryData = (id) => appData.categories.find(c => c.id === id);
 
 // --- RENDERING ---
 function renderDashboard() {
     categoriesGrid.innerHTML = '';
     appData.categories.forEach(cat => {
         const count = appData.notes.filter(n => n.categoryId === cat.id).length;
-        
+
+        // Soporte para iconos antiguos vs nuevos (con fa-solid o fa-brands ya incluido)
+        const iconClass = cat.icon.includes(' ') ? cat.icon : `fa-solid ${cat.icon}`;
+
         const card = document.createElement('div');
         card.className = 'glass-card category-card';
         card.innerHTML = `
-            <i class="fa-solid ${cat.icon} category-icon"></i>
+            <div class="card-options-wrapper">
+                <button class="options-cat-btn" data-id="${cat.id}" title="Opciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                <div class="card-dropdown" id="dropdown-${cat.id}" style="display: none;">
+                    <div class="dropdown-item edit-option"><i class="fa-solid fa-pencil"></i> Editar</div>
+                    <div class="dropdown-item delete-option text-danger"><i class="fa-solid fa-trash"></i> Eliminar</div>
+                </div>
+            </div>
+            <i class="${iconClass} category-icon"></i>
             <div class="category-title">${cat.title}</div>
             <div class="category-count">${count} apunte(s)</div>
         `;
-        card.addEventListener('click', () => showCategory(cat.id));
+
+        card.addEventListener('click', (e) => {
+            // Manejar menú de opciones
+            if (e.target.closest('.options-cat-btn')) {
+                e.stopPropagation();
+                const dropdown = card.querySelector('.card-dropdown');
+                const isVisible = dropdown.style.display === 'block';
+                // Cerrar todos los demás primero
+                document.querySelectorAll('.card-dropdown').forEach(d => d.style.display = 'none');
+                dropdown.style.display = isVisible ? 'none' : 'block';
+                return;
+            }
+            if (e.target.closest('.edit-option')) {
+                e.stopPropagation();
+                card.querySelector('.card-dropdown').style.display = 'none';
+                if (window.openCategoryModal) window.openCategoryModal(cat.id);
+                return;
+            }
+            if (e.target.closest('.delete-option')) {
+                e.stopPropagation();
+                card.querySelector('.card-dropdown').style.display = 'none';
+
+                // Validación: No permitir eliminar si tiene apuntes
+                const hasNotes = appData.notes.some(n => n.categoryId === cat.id);
+                if (hasNotes) {
+                    if (window.showToast) window.showToast('No se puede eliminar una categoría que contiene apuntes', true);
+                    return;
+                }
+
+                if (window.openDeleteModal) {
+                    window.openDeleteModal(
+                        'Eliminar Categoría',
+                        '¿Estás seguro de eliminar esta categoría?',
+                        () => {
+                            if (window.deleteCategoryFromApp) window.deleteCategoryFromApp(cat.id);
+                        }
+                    );
+                }
+                return;
+            }
+
+            showCategory(cat.id);
+        });
         categoriesGrid.appendChild(card);
     });
 }
@@ -162,25 +201,25 @@ function renderDashboard() {
 function renderNotes() {
     notesGrid.innerHTML = '';
     const catNotes = appData.notes.filter(n => n.categoryId === currentCategoryId);
-    
+
     if (catNotes.length === 0) {
         notesGrid.innerHTML = '<p style="color: var(--text-secondary);">No hay apuntes aquí. ¡Crea uno nuevo!</p>';
         return;
     }
-    
-    catNotes.sort((a,b) => b.date - a.date).forEach(note => {
+
+    catNotes.sort((a, b) => b.date - a.date).forEach(note => {
         const card = document.createElement('div');
         card.className = 'glass-card note-card';
-        
+
         const date = new Date(note.date).toLocaleDateString();
-        
+
         const escapeHtml = (unsafe) => {
             return unsafe
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;");
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
         };
-        
+
         card.innerHTML = `
             <div class="note-title">${note.title || 'Sin título'}</div>
             <div class="note-preview">${escapeHtml(note.content)}</div>
@@ -188,18 +227,18 @@ function renderNotes() {
         `;
         card.addEventListener('click', () => {
             // En vez de abrir el modal, abrimos la nueva interfaz
-            if(window.showVerApunte) window.showVerApunte(note);
+            if (window.showVerApunte) window.showVerApunte(note);
         });
         notesGrid.appendChild(card);
     });
 }
 
 // Nueva función de navegación hacia Ver Apunte
-window.showVerApunte = function(note) {
+window.showVerApunte = function (note) {
     dashboardView.style.display = 'none';
     categoryView.style.display = 'none';
     viewApunte.style.display = 'block';
-    
+
     viewApunte.classList.remove('fade-in');
     void viewApunte.offsetWidth;
     viewApunte.classList.add('fade-in');
@@ -212,15 +251,41 @@ window.showVerApunte = function(note) {
 // --- API PARA LOS MODALES SEPARADOS ---
 
 // Función llamada por ModalCreacionEdicionCategorias.js
-window.addCategoryToApp = function(newCat) {
-    appData.categories.push(newCat);
+window.saveCategoryToApp = function (catData) {
+    if (catData.id) {
+        // Update
+        const index = appData.categories.findIndex(c => c.id === catData.id);
+        if (index > -1) {
+            appData.categories[index].title = catData.title;
+            appData.categories[index].icon = catData.icon;
+        }
+        showToast('Categoría actualizada');
+    } else {
+        // Create
+        catData.id = 'cat-' + Date.now();
+        appData.categories.push(catData);
+        showToast('Categoría creada');
+    }
+
     saveData();
     renderDashboard();
-    showToast('Categoría creada');
+
+    if (currentCategoryId === catData.id) {
+        currentCategoryTitle.textContent = catData.title;
+    }
+};
+
+window.deleteCategoryFromApp = function (catId) {
+    appData.categories = appData.categories.filter(c => c.id !== catId);
+    appData.notes = appData.notes.filter(n => n.categoryId !== catId);
+    saveData();
+    renderDashboard();
+    showDashboard();
+    showToast('Categoría eliminada');
 };
 
 // Función llamada por ModalCrearVerApuntes.js
-window.saveNoteToApp = function(noteData) {
+window.saveNoteToApp = function (noteData) {
     if (noteData.id) {
         // Actualizar
         const index = appData.notes.findIndex(n => n.id === noteData.id);
@@ -246,7 +311,7 @@ window.saveNoteToApp = function(noteData) {
 };
 
 // Función llamada por ModalCrearVerApuntes.js
-window.deleteNoteFromApp = function(noteId) {
+window.deleteNoteFromApp = function (noteId) {
     appData.notes = appData.notes.filter(n => n.id !== noteId);
     saveData();
     renderNotes();
@@ -255,15 +320,15 @@ window.deleteNoteFromApp = function(noteId) {
 };
 
 // --- UTILS & EVENT LISTENERS ---
-window.showToast = function(message, isError = false) {
+window.showToast = function (message, isError = false) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = 'toast';
-    if(isError) toast.style.backgroundColor = 'var(--danger-color)';
+    if (isError) toast.style.backgroundColor = 'var(--danger-color)';
     toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${message}`;
-    
+
     container.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.classList.add('hiding');
         setTimeout(() => toast.remove(), 300);
@@ -272,13 +337,20 @@ window.showToast = function(message, isError = false) {
 
 function setupEventListeners() {
     btnBackDashboard.addEventListener('click', showDashboard);
-    
+
     btnOpenCategoryModal.addEventListener('click', () => {
-        if(window.openCategoryModal) window.openCategoryModal();
+        if (window.openCategoryModal) window.openCategoryModal(null);
     });
 
     btnOpenNoteModal.addEventListener('click', () => {
-        if(window.openNoteModal) window.openNoteModal(null);
+        if (window.openNoteModal) window.openNoteModal(null);
+    });
+
+    // Cerrar dropdowns si se hace clic fuera
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.card-options-wrapper')) {
+            document.querySelectorAll('.card-dropdown').forEach(d => d.style.display = 'none');
+        }
     });
 }
 

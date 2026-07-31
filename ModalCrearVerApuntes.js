@@ -72,11 +72,24 @@ window.initNoteModal = function() {
     });
 
     btnDelete.addEventListener('click', () => {
-        if (confirm('¿Estás seguro de eliminar este apunte?')) {
-            if(window.deleteNoteFromApp) {
-                window.deleteNoteFromApp(currentEditingNoteId);
+        if (window.openDeleteModal) {
+            window.openDeleteModal(
+                'Eliminar Apunte',
+                '¿Estás seguro de eliminar este apunte? Esta acción no se puede deshacer.',
+                () => {
+                    if (window.deleteNoteFromApp && currentEditingNoteId) {
+                        window.deleteNoteFromApp(currentEditingNoteId);
+                    }
+                    window.closeNoteModal();
+                }
+            );
+        } else {
+            if (confirm('¿Estás seguro de eliminar este apunte?')) {
+                if (window.deleteNoteFromApp && currentEditingNoteId) {
+                    window.deleteNoteFromApp(currentEditingNoteId);
+                }
+                window.closeNoteModal();
             }
-            window.closeNoteModal();
         }
     });
 

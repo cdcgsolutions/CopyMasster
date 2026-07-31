@@ -1,0 +1,42 @@
+/* ModalEliminar.css */
+
+.delete-modal-content {
+    max-width: 400px;
+    text-align: center;
+    padding: 1rem;
+}
+
+.delete-warning-icon {
+    font-size: 3.5rem;
+    color: var(--danger-color);
+    margin-bottom: 1rem;
+    animation: pulseWarning 2s infinite;
+}
+
+@keyframes pulseWarning {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.delete-modal-title {
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.delete-modal-message {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    line-height: 1.4;
+}
+
+.delete-modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+.delete-modal-actions button {
+    flex: 1;
+    justify-content: center;
+}

@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="ModalCreacionEdicionCategorias.css">
     <link rel="stylesheet" href="ModalCrearVerApuntes.css">
     <link rel="stylesheet" href="VerContenidoApunte.css">
+    <link rel="stylesheet" href="ModalEliminar.css">
 </head>
 <body class="dark-theme">
     
@@ -40,7 +41,7 @@
             <div class="view-header">
                 <h2>Mis Categorías</h2>
                 <button id="btn-open-category-modal" class="primary-btn">
-                    <i class="fa-solid fa-plus"></i> Nueva Categoría
+                    <i class="fa-solid fa-plus"></i> <span class="btn-text-long">Nueva Categoría</span><span class="btn-text-short">Categoría</span>
                 </button>
             </div>
             
@@ -56,9 +57,11 @@
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
                 <h2 id="current-category-title">Categoría</h2>
-                <button id="btn-open-note-modal" class="primary-btn">
-                    <i class="fa-solid fa-plus"></i> Nuevo Apunte
-                </button>
+                <div class="header-actions">
+                    <button id="btn-open-note-modal" class="primary-btn">
+                        <i class="fa-solid fa-plus"></i> <span class="btn-text-long">Nuevo Apunte</span><span class="btn-text-short">Apunte</span>
+                    </button>
+                </div>
             </div>
             
             <div id="notes-grid" class="notes-grid">
@@ -73,9 +76,10 @@
 
     </div>
 
-    <!-- CONTENEDORES PARA INYECTAR LOS MODALES SEPARADOS -->
-    <div id="modal-container-categorias"></div>
-    <div id="modal-container-apuntes"></div>
+    <!-- Contenedores para modales inyectados por fetch -->
+    <div id="modal-category-container"></div>
+    <div id="modal-note-container"></div>
+    <div id="modal-delete-container"></div>
 
     <div id="toast-container" class="toast-container"></div>
 
@@ -83,6 +87,7 @@
     <script src="ModalCreacionEdicionCategorias.js"></script>
     <script src="ModalCrearVerApuntes.js"></script>
     <script src="VerContenidoApunte.js"></script>
+    <script src="ModalEliminar.js"></script>
     <script src="home.js"></script>
 </body>
 </html>
