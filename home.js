@@ -13,6 +13,9 @@ let appData = {
 
 let currentUser = null;
 let currentCategoryId = null;
+let currentCatPage = 1;
+let currentNotePage = 1;
+const pageSize = 9;
 
 // --- DOM ELEMENTS ---
 const themeToggle = document.getElementById('theme-toggle');
@@ -21,6 +24,8 @@ const categoryView = document.getElementById('category-view');
 const viewApunte = document.getElementById('view-apunte');
 const categoriesGrid = document.getElementById('categories-grid');
 const notesGrid = document.getElementById('notes-grid');
+const categoriesPagination = document.getElementById('categories-pagination');
+const notesPagination = document.getElementById('notes-pagination');
 const currentCategoryTitle = document.getElementById('current-category-title');
 
 const btnBackDashboard = document.getElementById('btn-back-dashboard');
@@ -159,6 +164,7 @@ function showDashboard() {
     dashboardView.classList.add('fade-in');
 
     currentCategoryId = null;
+    currentCatPage = 1;
     if (searchCategoryInput) searchCategoryInput.value = '';
     renderDashboard();
 }
@@ -176,6 +182,7 @@ function showCategory(categoryId) {
     void categoryView.offsetWidth;
     categoryView.classList.add('fade-in');
 
+    currentNotePage = 1;
     if (searchNoteInput) searchNoteInput.value = '';
     renderNotes();
 }
@@ -184,9 +191,88 @@ window.showCategory = showCategory;
 window.getCurrentCategoryId = () => currentCategoryId;
 window.getCategoryData = (id) => appData.categories.find(c => c.id === id);
 
+// --- LÓGICA DE PAGinACIÓN ESTILO MUDBLAZOR ---
+function renderMudPagination(container, totalItems, currentPage, pageSize, onPageChange) {
+    container.innerHTML = '';
+    const totalPages = Math.ceil(totalItems / pageSize);
+
+    if (totalPages <= 1) {
+        return; // No requerida si todo cabe en la primera página
+    }
+
+    const paginationDiv = document.createElement('div');
+    paginationDiv.className = 'mud-pagination';
+
+    // Botón Primera Página (<<)
+    const btnFirst = document.createElement('button');
+    btnFirst.className = 'mud-page-btn';
+    btnFirst.innerHTML = '<i class="fa-solid fa-angles-left"></i>';
+    btnFirst.title = 'Primera página';
+    btnFirst.disabled = currentPage === 1;
+    btnFirst.onclick = () => onPageChange(1);
+    paginationDiv.appendChild(btnFirst);
+
+    // Botón Anterior (<)
+    const btnPrev = document.createElement('button');
+    btnPrev.className = 'mud-page-btn';
+    btnPrev.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
+    btnPrev.title = 'Página anterior';
+    btnPrev.disabled = currentPage === 1;
+    btnPrev.onclick = () => onPageChange(currentPage - 1);
+    paginationDiv.appendChild(btnPrev);
+
+    // Números de página (máximo 5 botones)
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const btnPage = document.createElement('button');
+        btnPage.className = `mud-page-btn ${i === currentPage ? 'active' : ''}`;
+        btnPage.textContent = i;
+        btnPage.onclick = () => {
+            if (i !== currentPage) onPageChange(i);
+        };
+        paginationDiv.appendChild(btnPage);
+    }
+
+    // Botón Siguiente (>)
+    const btnNext = document.createElement('button');
+    btnNext.className = 'mud-page-btn';
+    btnNext.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
+    btnNext.title = 'Página siguiente';
+    btnNext.disabled = currentPage === totalPages;
+    btnNext.onclick = () => onPageChange(currentPage + 1);
+    paginationDiv.appendChild(btnNext);
+
+    // Botón Última Página (>>)
+    const btnLast = document.createElement('button');
+    btnLast.className = 'mud-page-btn';
+    btnLast.innerHTML = '<i class="fa-solid fa-angles-right"></i>';
+    btnLast.title = 'Última página';
+    btnLast.disabled = currentPage === totalPages;
+    btnLast.onclick = () => onPageChange(totalPages);
+    paginationDiv.appendChild(btnLast);
+
+    container.appendChild(paginationDiv);
+
+    // Info descriptiva
+    const startIdx = (currentPage - 1) * pageSize + 1;
+    const endIdx = Math.min(totalItems, currentPage * pageSize);
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'mud-pagination-info';
+    infoDiv.textContent = `Mostrando ${startIdx} - ${endIdx} de ${totalItems} registros (Pág. ${currentPage} de ${totalPages})`;
+    container.appendChild(infoDiv);
+}
+
 // --- RENDERING ---
-function renderDashboard(filterText = '') {
+function renderDashboard(filterText = '', resetPage = false) {
+    if (resetPage) currentCatPage = 1;
     categoriesGrid.innerHTML = '';
+    if (categoriesPagination) categoriesPagination.innerHTML = '';
+
     const filteredCats = appData.categories.filter(cat => 
         cat.title.toLowerCase().includes(filterText.toLowerCase().trim())
     );
@@ -196,7 +282,15 @@ function renderDashboard(filterText = '') {
         return;
     }
 
-    filteredCats.forEach(cat => {
+    // Calcular Paginación
+    const totalItems = filteredCats.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (currentCatPage > totalPages) currentCatPage = totalPages;
+
+    const startIdx = (currentCatPage - 1) * pageSize;
+    const paginatedCats = filteredCats.slice(startIdx, startIdx + pageSize);
+
+    paginatedCats.forEach(cat => {
         const count = appData.notes.filter(n => n.categoryId === cat.id).length;
         const iconClass = cat.icon.includes(' ') ? cat.icon : `fa-solid ${cat.icon}`;
 
@@ -256,10 +350,21 @@ function renderDashboard(filterText = '') {
         });
         categoriesGrid.appendChild(card);
     });
+
+    if (categoriesPagination) {
+        renderMudPagination(categoriesPagination, totalItems, currentCatPage, pageSize, (newPage) => {
+            currentCatPage = newPage;
+            renderDashboard(searchCategoryInput ? searchCategoryInput.value : '');
+            dashboardView.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 }
 
-function renderNotes(filterText = '') {
+function renderNotes(filterText = '', resetPage = false) {
+    if (resetPage) currentNotePage = 1;
     notesGrid.innerHTML = '';
+    if (notesPagination) notesPagination.innerHTML = '';
+
     const catNotes = appData.notes.filter(n => 
         n.categoryId === currentCategoryId && 
         ((n.title && n.title.toLowerCase().includes(filterText.toLowerCase().trim())) || filterText.trim() === '')
@@ -274,7 +379,15 @@ function renderNotes(filterText = '') {
         return;
     }
 
-    catNotes.sort((a, b) => b.date - a.date).forEach(note => {
+    const sortedNotes = catNotes.sort((a, b) => b.date - a.date);
+    const totalItems = sortedNotes.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (currentNotePage > totalPages) currentNotePage = totalPages;
+
+    const startIdx = (currentNotePage - 1) * pageSize;
+    const paginatedNotes = sortedNotes.slice(startIdx, startIdx + pageSize);
+
+    paginatedNotes.forEach(note => {
         const card = document.createElement('div');
         card.className = 'glass-card note-card';
 
@@ -297,6 +410,14 @@ function renderNotes(filterText = '') {
         });
         notesGrid.appendChild(card);
     });
+
+    if (notesPagination) {
+        renderMudPagination(notesPagination, totalItems, currentNotePage, pageSize, (newPage) => {
+            currentNotePage = newPage;
+            renderNotes(searchNoteInput ? searchNoteInput.value : '');
+            categoryView.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 }
 
 window.showVerApunte = function (note) {
@@ -470,12 +591,12 @@ function setupEventListeners() {
 
     if (searchCategoryInput) {
         searchCategoryInput.addEventListener('input', (e) => {
-            renderDashboard(e.target.value);
+            renderDashboard(e.target.value, true);
         });
     }
     if (searchNoteInput) {
         searchNoteInput.addEventListener('input', (e) => {
-            renderNotes(e.target.value);
+            renderNotes(e.target.value, true);
         });
     }
 }
