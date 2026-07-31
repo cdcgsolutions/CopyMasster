@@ -1,18 +1,17 @@
 // home.js
 
+import { auth, db } from './firebase.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
 // --- STATE & DATA ---
-const STORAGE_KEY = 'copymaster_data';
 let appData = {
-    theme: 'dark',
-    categories: [
-        { id: 'cat-1', title: 'Tokens', icon: 'fa-key' },
-        { id: 'cat-2', title: 'Scripts JS', icon: 'fa-code' },
-        { id: 'cat-3', title: 'Comandos SQL', icon: 'fa-database' },
-        { id: 'cat-4', title: 'Snippets CSS', icon: 'fa-css3-alt' }
-    ],
+    theme: 'dark', // Tema local
+    categories: [],
     notes: []
 };
 
+let currentUser = null;
 let currentCategoryId = null;
 
 // --- DOM ELEMENTS ---
@@ -27,24 +26,81 @@ const currentCategoryTitle = document.getElementById('current-category-title');
 const btnBackDashboard = document.getElementById('btn-back-dashboard');
 const btnOpenCategoryModal = document.getElementById('btn-open-category-modal');
 const btnOpenNoteModal = document.getElementById('btn-open-note-modal');
+const btnLogout = document.getElementById('btn-logout');
 
 // --- INITIALIZATION ---
-async function initApp() {
-    // 1. Cargar datos de localStorage
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-        appData = JSON.parse(savedData);
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        // Redirigir a login si no hay sesión
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    currentUser = user;
+    
+    // Actualizar Header con datos de Google
+    const profileImg = document.getElementById('user-profile-img');
+    const profileName = document.getElementById('user-profile-name');
+    const profileEmail = document.getElementById('user-profile-email');
+    
+    if (profileImg && profileName && profileEmail) {
+        if (user.photoURL) {
+            profileImg.src = user.photoURL;
+            profileImg.style.display = 'block';
+        }
+        profileName.textContent = user.displayName || 'Usuario de CopyMaster';
+        profileEmail.textContent = user.email || '';
     }
 
-    // 2. Aplicar Tema
-    applyTheme(appData.theme);
+    // Si es la primera vez que carga, inicia la app
+    if(appData.categories.length === 0 && appData.notes.length === 0) {
+        await initApp();
+    }
+});
 
-    // 3. Cargar Modales HTML separados dinámicamente
+async function initApp() {
+    // 1. Cargar Modales HTML separados dinámicamente
     await loadModals();
+
+    // 2. Cargar datos de Firestore
+    await loadDataFromFirestore();
+
+    // 3. Aplicar Tema (Por ahora guardado en localStorage o por defecto dark)
+    const savedTheme = localStorage.getItem('copymaster_theme');
+    if (savedTheme) {
+        appData.theme = savedTheme;
+    }
+    applyTheme(appData.theme);
 
     // 4. Renderizar Vistas
     renderDashboard();
     setupEventListeners();
+}
+
+async function loadDataFromFirestore() {
+    try {
+        categoriesGrid.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> <span>Cargando tus apuntes desde la nube...</span></div>';
+        
+        appData.categories = [];
+        appData.notes = [];
+
+        // Fetch Categorías
+        const qCat = query(collection(db, "categories"), where("userId", "==", currentUser.uid));
+        const catSnap = await getDocs(qCat);
+        catSnap.forEach((docSnap) => {
+            appData.categories.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        // Fetch Notas
+        const qNotes = query(collection(db, "notes"), where("userId", "==", currentUser.uid));
+        const noteSnap = await getDocs(qNotes);
+        noteSnap.forEach((docSnap) => {
+            appData.notes.push({ id: docSnap.id, ...docSnap.data() });
+        });
+    } catch (e) {
+        console.error("Error cargando datos de Firestore", e);
+        if(window.showToast) window.showToast("Error conectando a la base de datos", true);
+    }
 }
 
 async function loadModals() {
@@ -66,13 +122,9 @@ async function loadModals() {
         if (window.initVerApunteView) window.initVerApunteView();
         if (window.initDeleteModal) window.initDeleteModal();
     } catch (e) {
-        console.error("Error cargando los modales. Asegúrate de ejecutar esto en un servidor (ej. Live Server en VSCode) y no abriendo el archivo directamente con doble clic.", e);
+        console.error("Error cargando los modales.", e);
         showToast("Error de CORS: Usa Live Server para cargar los modales.", true);
     }
-}
-
-function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
 }
 
 // --- THEME MANAGEMENT ---
@@ -91,7 +143,7 @@ function applyTheme(theme) {
 themeToggle.addEventListener('click', () => {
     appData.theme = appData.theme === 'light' ? 'dark' : 'light';
     applyTheme(appData.theme);
-    saveData();
+    localStorage.setItem('copymaster_theme', appData.theme); // Tema se mantiene local
 });
 
 // --- NAVIGATION ---
@@ -124,7 +176,7 @@ function showCategory(categoryId) {
     renderNotes();
 }
 
-window.showCategory = showCategory; // Exponer al window para llamarlo desde VerContenidoApunte.js
+window.showCategory = showCategory;
 window.getCurrentCategoryId = () => currentCategoryId;
 window.getCategoryData = (id) => appData.categories.find(c => c.id === id);
 
@@ -133,8 +185,6 @@ function renderDashboard() {
     categoriesGrid.innerHTML = '';
     appData.categories.forEach(cat => {
         const count = appData.notes.filter(n => n.categoryId === cat.id).length;
-
-        // Soporte para iconos antiguos vs nuevos (con fa-solid o fa-brands ya incluido)
         const iconClass = cat.icon.includes(' ') ? cat.icon : `fa-solid ${cat.icon}`;
 
         const card = document.createElement('div');
@@ -153,12 +203,10 @@ function renderDashboard() {
         `;
 
         card.addEventListener('click', (e) => {
-            // Manejar menú de opciones
             if (e.target.closest('.options-cat-btn')) {
                 e.stopPropagation();
                 const dropdown = card.querySelector('.card-dropdown');
                 const isVisible = dropdown.style.display === 'block';
-                // Cerrar todos los demás primero
                 document.querySelectorAll('.card-dropdown').forEach(d => d.style.display = 'none');
                 dropdown.style.display = isVisible ? 'none' : 'block';
                 return;
@@ -173,7 +221,6 @@ function renderDashboard() {
                 e.stopPropagation();
                 card.querySelector('.card-dropdown').style.display = 'none';
 
-                // Validación: No permitir eliminar si tiene apuntes
                 const hasNotes = appData.notes.some(n => n.categoryId === cat.id);
                 if (hasNotes) {
                     if (window.showToast) window.showToast('No se puede eliminar una categoría que contiene apuntes', true);
@@ -184,8 +231,8 @@ function renderDashboard() {
                     window.openDeleteModal(
                         'Eliminar Categoría',
                         '¿Estás seguro de eliminar esta categoría?',
-                        () => {
-                            if (window.deleteCategoryFromApp) window.deleteCategoryFromApp(cat.id);
+                        async () => {
+                            if (window.deleteCategoryFromApp) await window.deleteCategoryFromApp(cat.id);
                         }
                     );
                 }
@@ -226,14 +273,12 @@ function renderNotes() {
             <div class="note-date"><i class="fa-regular fa-clock"></i> ${date}</div>
         `;
         card.addEventListener('click', () => {
-            // En vez de abrir el modal, abrimos la nueva interfaz
             if (window.showVerApunte) window.showVerApunte(note);
         });
         notesGrid.appendChild(card);
     });
 }
 
-// Nueva función de navegación hacia Ver Apunte
 window.showVerApunte = function (note) {
     dashboardView.style.display = 'none';
     categoryView.style.display = 'none';
@@ -248,75 +293,114 @@ window.showVerApunte = function (note) {
     }
 };
 
-// --- API PARA LOS MODALES SEPARADOS ---
+// --- FIREBASE CRUD API PARA LOS MODALES SEPARADOS ---
 
-// Función llamada por ModalCreacionEdicionCategorias.js
-window.saveCategoryToApp = function (catData) {
-    if (catData.id) {
-        // Update
-        const index = appData.categories.findIndex(c => c.id === catData.id);
-        if (index > -1) {
-            appData.categories[index].title = catData.title;
-            appData.categories[index].icon = catData.icon;
+window.saveCategoryToApp = async function (catData) {
+    try {
+        if (catData.id) {
+            // Update
+            const catRef = doc(db, "categories", catData.id);
+            await updateDoc(catRef, {
+                title: catData.title,
+                icon: catData.icon
+            });
+            const index = appData.categories.findIndex(c => c.id === catData.id);
+            if (index > -1) {
+                appData.categories[index].title = catData.title;
+                appData.categories[index].icon = catData.icon;
+            }
+            showToast('Categoría actualizada');
+        } else {
+            // Create
+            const newCat = {
+                title: catData.title,
+                icon: catData.icon,
+                userId: currentUser.uid,
+                createdAt: Date.now()
+            };
+            const docRef = await addDoc(collection(db, "categories"), newCat);
+            newCat.id = docRef.id;
+            appData.categories.push(newCat);
+            showToast('Categoría creada');
         }
-        showToast('Categoría actualizada');
-    } else {
-        // Create
-        catData.id = 'cat-' + Date.now();
-        appData.categories.push(catData);
-        showToast('Categoría creada');
-    }
 
-    saveData();
-    renderDashboard();
+        renderDashboard();
 
-    if (currentCategoryId === catData.id) {
-        currentCategoryTitle.textContent = catData.title;
-    }
-};
-
-window.deleteCategoryFromApp = function (catId) {
-    appData.categories = appData.categories.filter(c => c.id !== catId);
-    appData.notes = appData.notes.filter(n => n.categoryId !== catId);
-    saveData();
-    renderDashboard();
-    showDashboard();
-    showToast('Categoría eliminada');
-};
-
-// Función llamada por ModalCrearVerApuntes.js
-window.saveNoteToApp = function (noteData) {
-    if (noteData.id) {
-        // Actualizar
-        const index = appData.notes.findIndex(n => n.id === noteData.id);
-        if (index > -1) {
-            appData.notes[index].title = noteData.title;
-            appData.notes[index].content = noteData.content;
-            appData.notes[index].date = Date.now();
+        if (currentCategoryId === (catData.id || appData.categories[appData.categories.length-1].id)) {
+            currentCategoryTitle.textContent = catData.title;
         }
-    } else {
-        // Crear
-        appData.notes.push({
-            id: 'note-' + Date.now(),
-            categoryId: currentCategoryId,
-            title: noteData.title,
-            content: noteData.content,
-            date: Date.now()
-        });
+    } catch (error) {
+        console.error("Error guardando categoría:", error);
+        showToast("Error guardando categoría", true);
     }
-    saveData();
-    renderNotes();
-    renderDashboard();
-    showToast('¡Apunte guardado!');
 };
 
-// Función llamada por ModalCrearVerApuntes.js
-window.deleteNoteFromApp = function (noteId) {
-    appData.notes = appData.notes.filter(n => n.id !== noteId);
-    saveData();
-    renderNotes();
-    renderDashboard();
-    showToast('Apunte eliminado');
+window.deleteCategoryFromApp = async function (catId) {
+    try {
+        await deleteDoc(doc(db, "categories", catId));
+        
+        appData.categories = appData.categories.filter(c => c.id !== catId);
+        appData.notes = appData.notes.filter(n => n.categoryId !== catId);
+        
+        renderDashboard();
+        showDashboard();
+        showToast('Categoría eliminada');
+    } catch (error) {
+        console.error("Error eliminando categoría:", error);
+        showToast("Error eliminando categoría", true);
+    }
+};
+
+window.saveNoteToApp = async function (noteData) {
+    try {
+        if (noteData.id) {
+            // Actualizar
+            const noteRef = doc(db, "notes", noteData.id);
+            await updateDoc(noteRef, {
+                title: noteData.title,
+                content: noteData.content,
+                date: Date.now()
+            });
+            const index = appData.notes.findIndex(n => n.id === noteData.id);
+            if (index > -1) {
+                appData.notes[index].title = noteData.title;
+                appData.notes[index].content = noteData.content;
+                appData.notes[index].date = Date.now();
+            }
+            showToast('Apunte actualizado');
+        } else {
+            // Crear
+            const newNote = {
+                categoryId: currentCategoryId,
+                userId: currentUser.uid,
+                title: noteData.title,
+                content: noteData.content,
+                date: Date.now()
+            };
+            const docRef = await addDoc(collection(db, "notes"), newNote);
+            newNote.id = docRef.id;
+            appData.notes.push(newNote);
+            showToast('¡Apunte guardado!');
+        }
+        renderNotes();
+        renderDashboard();
+    } catch (error) {
+        console.error("Error guardando apunte:", error);
+        showToast("Error guardando apunte", true);
+    }
+};
+
+window.deleteNoteFromApp = async function (noteId) {
+    try {
+        await deleteDoc(doc(db, "notes", noteId));
+        appData.notes = appData.notes.filter(n => n.id !== noteId);
+        renderNotes();
+        renderDashboard();
+        showToast('Apunte eliminado');
+    } catch (error) {
+        console.error("Error eliminando apunte:", error);
+        showToast("Error eliminando apunte", true);
+    }
 };
 
 // --- UTILS & EVENT LISTENERS ---
@@ -352,7 +436,15 @@ function setupEventListeners() {
             document.querySelectorAll('.card-dropdown').forEach(d => d.style.display = 'none');
         }
     });
-}
 
-// Iniciar aplicación
-initApp();
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                // La redirección ocurrirá automáticamente por onAuthStateChanged
+            } catch (error) {
+                console.error("Error al cerrar sesión", error);
+            }
+        });
+    }
+}

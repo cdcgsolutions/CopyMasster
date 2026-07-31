@@ -26,14 +26,22 @@
     </div>
 
     <div class="app-container">
-        <header>
-            <div class="logo">
-                <i class="fa-solid fa-layer-group"></i>
-                <h1>CopyMaster</h1>
+        <header class="app-header">
+            <div class="header-left" id="user-profile-info">
+                <img id="user-profile-img" src="" alt="Perfil" class="profile-img" style="display: none;">
+                <div class="user-details">
+                    <h1 id="user-profile-name">Cargando...</h1>
+                    <p id="user-profile-email">Cargando perfil...</p>
+                </div>
             </div>
-            <button id="theme-toggle" class="icon-btn" title="Cambiar Tema">
-                <i class="fa-solid fa-sun"></i>
-            </button>
+            <div class="header-right">
+                <button id="theme-toggle" class="icon-btn" title="Cambiar Tema">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button id="btn-logout" class="icon-btn" title="Cerrar Sesión">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text-long">Cerrar sesión</span>
+                </button>
+            </div>
         </header>
 
         <!-- VIEW 1: Dashboard (Categorías) -->
@@ -74,6 +82,11 @@
             <!-- El contenido se inyectará aquí -->
         </main>
 
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Desarrollado por <strong>DANIEL</strong></p>
+        </footer>
+
     </div>
 
     <!-- Contenedores para modales inyectados por fetch -->
@@ -88,6 +101,6 @@
     <script src="ModalCrearVerApuntes.js"></script>
     <script src="VerContenidoApunte.js"></script>
     <script src="ModalEliminar.js"></script>
-    <script src="home.js"></script>
+    <script type="module" src="home.js"></script>
 </body>
 </html>

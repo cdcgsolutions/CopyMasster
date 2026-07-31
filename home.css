@@ -493,3 +493,228 @@ button {
         display: none;
     }
 }
+
+/* Footer Minimalista */
+.app-footer {
+    text-align: center;
+    padding: 2rem 0 1rem;
+    margin-top: auto;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    border-top: 1px solid var(--glass-border);
+    opacity: 0.8;
+}
+.app-footer strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* =========================================================
+   BLOQUE 1: ESTILOS DEL HEADER PARA PANTALLAS GRANDES (PC)
+========================================================= */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0 1.5rem 0;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    background: transparent;
+    box-shadow: none;
+}
+
+#user-profile-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.profile-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.profile-img:hover {
+    transform: scale(1.05);
+}
+
+.user-details h1 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+.user-details p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 4px 0 0 0;
+}
+
+.header-right {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+#theme-toggle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    font-size: 1.1rem;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+#theme-toggle:hover {
+    transform: rotate(15deg);
+}
+
+#btn-logout {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: var(--danger-color);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.65rem 1.4rem;
+    width: auto;
+    height: 42px;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+#btn-logout:hover {
+    background-color: var(--danger-color);
+    color: white;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    transform: translateY(-1px);
+}
+
+/* =========================================================
+   BLOQUE 2: ESTILOS DEL HEADER PARA PANTALLAS PEQUEÑAS (MOVIL)
+========================================================= */
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.2rem;
+        padding-bottom: 1.2rem;
+        margin-bottom: 2rem;
+    }
+
+    #user-profile-info {
+        justify-content: center;
+        text-align: center;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .profile-img {
+        width: 64px;
+        height: 64px;
+    }
+
+    .user-details h1 {
+        font-size: 1.15rem;
+    }
+
+    .user-details p {
+        font-size: 0.85rem;
+        word-break: break-all;
+    }
+
+    .header-right {
+        justify-content: center;
+        gap: 12px;
+    }
+
+    #btn-logout {
+        flex: 1;
+        justify-content: center;
+        max-width: 220px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Diseño compacto estilo app nativa para celulares pequeños */
+    .app-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    #user-profile-info {
+        flex-direction: row;
+        text-align: left;
+        gap: 10px;
+        flex: 1;
+        min-width: 0; /* Impide que nombres largos rompan los botones */
+    }
+
+    .profile-img {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+    }
+
+    .user-details h1 {
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-details p {
+        display: none;
+    }
+
+    .header-right {
+        flex-shrink: 0;
+        gap: 8px;
+    }
+
+    #theme-toggle, #btn-logout {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 12px;
+        justify-content: center;
+    }
+
+    #btn-logout .btn-text-long {
+        display: none;
+    }
+}
+
+/* Spinner de carga principal (Firestore) */
+.loading-spinner {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+    animation: fadeIn 0.3s ease;
+}
+.loading-spinner i {
+    font-size: 2.8rem;
+    color: var(--primary-color);
+}

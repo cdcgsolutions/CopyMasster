@@ -170,7 +170,7 @@ window.initCategoryModal = function() {
         }
     });
 
-    btnSave.addEventListener('click', () => {
+    btnSave.addEventListener('click', async () => {
         const title = inputTitle.value.trim();
         const finalIcon = inputIcon.value.trim() !== '' ? inputIcon.value.trim() : 'fa-solid fa-folder';
         
@@ -182,7 +182,14 @@ window.initCategoryModal = function() {
             };
             
             if(window.saveCategoryToApp) {
-                window.saveCategoryToApp(catData);
+                const originalHtml = btnSave.innerHTML;
+                btnSave.disabled = true;
+                btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+                
+                await window.saveCategoryToApp(catData);
+                
+                btnSave.disabled = false;
+                btnSave.innerHTML = originalHtml;
             }
             
             window.closeCategoryModal();

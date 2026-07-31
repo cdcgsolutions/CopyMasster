@@ -31,9 +31,16 @@ window.initDeleteModal = function() {
         }
     });
 
-    btnConfirm.addEventListener('click', () => {
+    btnConfirm.addEventListener('click', async () => {
         if (confirmCallback) {
-            confirmCallback();
+            const originalHtml = btnConfirm.innerHTML;
+            btnConfirm.disabled = true;
+            btnConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Eliminando...';
+            
+            await confirmCallback();
+            
+            btnConfirm.disabled = false;
+            btnConfirm.innerHTML = originalHtml;
         }
         window.closeDeleteModal();
     });

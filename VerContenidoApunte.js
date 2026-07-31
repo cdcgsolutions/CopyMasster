@@ -48,9 +48,9 @@ window.initVerApunteView = function() {
             window.openDeleteModal(
                 'Eliminar Apunte',
                 '¿Estás seguro de eliminar este apunte? Esta acción no se puede deshacer.',
-                () => {
+                async () => {
                     if(window.deleteNoteFromApp) {
-                        window.deleteNoteFromApp(currentApunteId);
+                        await window.deleteNoteFromApp(currentApunteId);
                     }
                     if(window.showCategory && window.getCurrentCategoryId) {
                         window.showCategory(window.getCurrentCategoryId());
@@ -69,7 +69,7 @@ window.initVerApunteView = function() {
         }
     });
 
-    btnSave.addEventListener('click', () => {
+    btnSave.addEventListener('click', async () => {
         const title = inputTitle.value.trim();
         const content = inputContent.value.trim();
         
@@ -85,9 +85,14 @@ window.initVerApunteView = function() {
         };
 
         if(window.saveNoteToApp) {
-            window.saveNoteToApp(noteData);
+            const originalHtml = btnSave.innerHTML;
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+            
+            await window.saveNoteToApp(noteData);
+            
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalHtml;
         }
-        
-        if(window.showToast) window.showToast('Apunte actualizado');
     });
 };

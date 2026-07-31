@@ -49,7 +49,7 @@ window.initNoteModal = function() {
         }
     });
 
-    btnSave.addEventListener('click', () => {
+    btnSave.addEventListener('click', async () => {
         const title = noteTitleInput.value.trim();
         const content = noteContentInput.value.trim();
         
@@ -65,7 +65,14 @@ window.initNoteModal = function() {
         };
 
         if(window.saveNoteToApp) {
-            window.saveNoteToApp(noteData);
+            const originalHtml = btnSave.innerHTML;
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+            
+            await window.saveNoteToApp(noteData);
+            
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalHtml;
         }
         
         window.closeNoteModal();
@@ -76,9 +83,9 @@ window.initNoteModal = function() {
             window.openDeleteModal(
                 'Eliminar Apunte',
                 '¿Estás seguro de eliminar este apunte? Esta acción no se puede deshacer.',
-                () => {
+                async () => {
                     if (window.deleteNoteFromApp && currentEditingNoteId) {
-                        window.deleteNoteFromApp(currentEditingNoteId);
+                        await window.deleteNoteFromApp(currentEditingNoteId);
                     }
                     window.closeNoteModal();
                 }
