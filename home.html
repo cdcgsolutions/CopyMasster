@@ -48,11 +48,17 @@
         <main id="dashboard-view" class="view active fade-in">
             <div class="view-header">
                 <h2>Mis Categorías</h2>
-                <button id="btn-open-category-modal" class="primary-btn">
-                    <i class="fa-solid fa-plus"></i> <span class="btn-text-long">Nueva Categoría</span><span class="btn-text-short">Categoría</span>
-                </button>
+                <div class="header-actions">
+                    <div class="minimal-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-category-input" placeholder="Buscar categoría...">
+                    </div>
+                    <button id="btn-open-category-modal" class="primary-btn">
+                        <i class="fa-solid fa-plus"></i> <span class="btn-text-long">Nueva Categoría</span><span class="btn-text-short">Categoría</span>
+                    </button>
+                </div>
             </div>
-            
+
             <div id="categories-grid" class="grid-container">
                 <!-- Las categorías se insertarán aquí dinámicamente -->
             </div>
@@ -61,17 +67,23 @@
         <!-- VIEW 2: Category (Lista de Notas) -->
         <main id="category-view" class="view fade-in" style="display: none;">
             <div class="view-header">
-                <button id="btn-back-dashboard" class="icon-btn back-btn">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <h2 id="current-category-title">Categoría</h2>
+                <div class="view-header-left">
+                    <button id="btn-back-dashboard" class="icon-btn back-btn">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h2 id="current-category-title">Categoría</h2>
+                </div>
                 <div class="header-actions">
+                    <div class="minimal-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-note-input" placeholder="Buscar apunte...">
+                    </div>
                     <button id="btn-open-note-modal" class="primary-btn">
                         <i class="fa-solid fa-plus"></i> <span class="btn-text-long">Nuevo Apunte</span><span class="btn-text-short">Apunte</span>
                     </button>
                 </div>
             </div>
-            
+
             <div id="notes-grid" class="notes-grid">
                 <!-- Las notas se insertarán aquí dinámicamente -->
             </div>

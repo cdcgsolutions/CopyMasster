@@ -27,6 +27,8 @@ const btnBackDashboard = document.getElementById('btn-back-dashboard');
 const btnOpenCategoryModal = document.getElementById('btn-open-category-modal');
 const btnOpenNoteModal = document.getElementById('btn-open-note-modal');
 const btnLogout = document.getElementById('btn-logout');
+const searchCategoryInput = document.getElementById('search-category-input');
+const searchNoteInput = document.getElementById('search-note-input');
 
 // --- INITIALIZATION ---
 onAuthStateChanged(auth, async (user) => {
@@ -157,6 +159,7 @@ function showDashboard() {
     dashboardView.classList.add('fade-in');
 
     currentCategoryId = null;
+    if (searchCategoryInput) searchCategoryInput.value = '';
     renderDashboard();
 }
 
@@ -173,6 +176,7 @@ function showCategory(categoryId) {
     void categoryView.offsetWidth;
     categoryView.classList.add('fade-in');
 
+    if (searchNoteInput) searchNoteInput.value = '';
     renderNotes();
 }
 
@@ -181,9 +185,18 @@ window.getCurrentCategoryId = () => currentCategoryId;
 window.getCategoryData = (id) => appData.categories.find(c => c.id === id);
 
 // --- RENDERING ---
-function renderDashboard() {
+function renderDashboard(filterText = '') {
     categoriesGrid.innerHTML = '';
-    appData.categories.forEach(cat => {
+    const filteredCats = appData.categories.filter(cat => 
+        cat.title.toLowerCase().includes(filterText.toLowerCase().trim())
+    );
+
+    if (filteredCats.length === 0 && appData.categories.length > 0) {
+        categoriesGrid.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 2rem;">No se encontraron categorías con ese título.</p>';
+        return;
+    }
+
+    filteredCats.forEach(cat => {
         const count = appData.notes.filter(n => n.categoryId === cat.id).length;
         const iconClass = cat.icon.includes(' ') ? cat.icon : `fa-solid ${cat.icon}`;
 
@@ -245,12 +258,19 @@ function renderDashboard() {
     });
 }
 
-function renderNotes() {
+function renderNotes(filterText = '') {
     notesGrid.innerHTML = '';
-    const catNotes = appData.notes.filter(n => n.categoryId === currentCategoryId);
+    const catNotes = appData.notes.filter(n => 
+        n.categoryId === currentCategoryId && 
+        ((n.title && n.title.toLowerCase().includes(filterText.toLowerCase().trim())) || filterText.trim() === '')
+    );
 
     if (catNotes.length === 0) {
-        notesGrid.innerHTML = '<p style="color: var(--text-secondary);">No hay apuntes aquí. ¡Crea uno nuevo!</p>';
+        if (filterText.trim() !== '') {
+            notesGrid.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 2rem;">No se encontraron apuntes con ese título.</p>';
+        } else {
+            notesGrid.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 2rem;">No hay apuntes aquí. ¡Crea uno nuevo!</p>';
+        }
         return;
     }
 
@@ -445,6 +465,17 @@ function setupEventListeners() {
             } catch (error) {
                 console.error("Error al cerrar sesión", error);
             }
+        });
+    }
+
+    if (searchCategoryInput) {
+        searchCategoryInput.addEventListener('input', (e) => {
+            renderDashboard(e.target.value);
+        });
+    }
+    if (searchNoteInput) {
+        searchNoteInput.addEventListener('input', (e) => {
+            renderNotes(e.target.value);
         });
     }
 }

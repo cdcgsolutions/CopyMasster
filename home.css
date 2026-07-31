@@ -272,12 +272,86 @@ button {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.view-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .view-header h2 {
-    font-size: 2rem;
-    font-weight: 600;
+    font-size: 1.8rem;
+    font-weight: 700;
     color: var(--text-primary);
+    margin: 0;
+}
+
+/* --- MINIMAL SEARCH INPUT (al lado del botón) --- */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.minimal-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    transition: all 0.2s ease;
+    height: 42px;
+    box-sizing: border-box;
+}
+
+.minimal-search:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.minimal-search i {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.minimal-search input {
+    border: none;
+    background: transparent;
+    outline: none;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    width: 180px;
+    font-family: inherit;
+}
+
+.minimal-search input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+/* Responsive para el buscador minimalista en pantallas pequeñas */
+@media (max-width: 650px) {
+    .view-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .header-actions {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+    }
+    .minimal-search {
+        flex: 1;
+    }
+    .minimal-search input {
+        width: 100%;
+    }
 }
 
 /* --- GRID SYSTEM --- */
