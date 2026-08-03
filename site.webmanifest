@@ -1,0 +1,22 @@
+{
+  "name": "CopyMaster",
+  "short_name": "CopyMaster",
+  "description": "Tu bóveda personal para guardar y organizar tus scripts en la nube.",
+  "icons": [
+    {
+      "src": "CopyMaster.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "CopyMaster.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "index.html",
+  "display": "standalone",
+  "theme_color": "#0f111a",
+  "background_color": "#0f111a"
+}

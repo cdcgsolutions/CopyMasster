@@ -3,6 +3,13 @@ import { signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/fir
 
 const btnLoginGoogle = document.getElementById('btn-login-google');
 
+// Aplicar el tema guardado en localStorage para que el fondo y la inversión del logo coincidan dinámicamente
+const savedTheme = localStorage.getItem('copymaster_theme');
+if (savedTheme === 'light') {
+    document.body.classList.remove('dark-theme');
+    document.body.classList.add('light-theme');
+}
+
 // Escuchar cambios en la autenticación
 onAuthStateChanged(auth, (user) => {
     if (user) {

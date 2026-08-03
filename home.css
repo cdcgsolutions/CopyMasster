@@ -19,6 +19,9 @@
 
     --input-bg: rgba(15, 23, 42, 0.6);
     --danger-color: #ef4444;
+
+    /* Filtro para convertir logo en blanco inmaculado sobre fondo oscuro */
+    --logo-filter: brightness(0) invert(1) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
 body.light-theme {
@@ -40,6 +43,9 @@ body.light-theme {
     --glow-2: #ddd6fe;
 
     --input-bg: rgba(255, 255, 255, 0.8);
+
+    /* Filtro para mantener logo en negro sobre fondo claro */
+    --logo-filter: brightness(0) invert(0) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
 }
 
 * {
