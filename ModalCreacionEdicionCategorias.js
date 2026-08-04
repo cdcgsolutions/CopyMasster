@@ -183,14 +183,7 @@ window.initCategoryModal = function() {
             };
             
             if(window.saveCategoryToApp) {
-                const originalHtml = btnSave.innerHTML;
-                btnSave.disabled = true;
-                btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-                
                 const success = await window.saveCategoryToApp(catData);
-                
-                btnSave.disabled = false;
-                btnSave.innerHTML = originalHtml;
                 if (success === false) return;
             }
             

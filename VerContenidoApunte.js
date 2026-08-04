@@ -86,14 +86,7 @@ window.initVerApunteView = function() {
         };
 
         if(window.saveNoteToApp) {
-            const originalHtml = btnSave.innerHTML;
-            btnSave.disabled = true;
-            btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-            
             await window.saveNoteToApp(noteData);
-            
-            btnSave.disabled = false;
-            btnSave.innerHTML = originalHtml;
         }
     });
 };

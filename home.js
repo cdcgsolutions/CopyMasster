@@ -69,21 +69,37 @@ async function initApp() {
     // 1. Cargar Modales HTML separados dinámicamente
     await loadModals();
 
-    // 2. Cargar datos de Firestore
-    await loadDataFromFirestore();
-
-    // 3. Aplicar Tema (Por ahora guardado en localStorage o por defecto dark)
+    // 2. Aplicar Tema (Por ahora guardado en localStorage o por defecto dark)
     const savedTheme = localStorage.getItem('copymaster_theme');
     if (savedTheme) {
         appData.theme = savedTheme;
     }
     applyTheme(appData.theme);
 
-    // 4. Renderizar Vistas
-    renderDashboard();
-    setupEventListeners();
+    // 3. NUEVO: Intentar cargar desde caché local primero (INSTANTÁNEO)
+    const cached = window.LocalCache ? window.LocalCache.loadFromCache(currentUser.uid) : null;
+
+    if (cached && cached.categories.length > 0) {
+        // ⚡ Render instantáneo desde localStorage
+        appData.categories = cached.categories;
+        appData.notes = cached.notes;
+        renderDashboard();
+        setupEventListeners();
+
+        // 🔄 Sincronizar con Firestore en segundo plano (sin bloquear la UI)
+        syncFromFirestoreInBackground();
+    } else {
+        // 🔵 Primera vez o caché vacío: descargar todo de Firestore
+        await loadDataFromFirestore();
+        renderDashboard();
+        setupEventListeners();
+    }
 }
 
+/**
+ * Carga completa desde Firestore (solo primera vez o caché vacío).
+ * Muestra spinner de carga y guarda en localStorage al terminar.
+ */
 async function loadDataFromFirestore() {
     try {
         categoriesGrid.innerHTML = '<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> <span>Cargando tus apuntes desde la nube...</span></div>';
@@ -104,9 +120,69 @@ async function loadDataFromFirestore() {
         noteSnap.forEach((docSnap) => {
             appData.notes.push({ id: docSnap.id, ...docSnap.data() });
         });
+
+        // Guardar en caché local para próximas visitas
+        if (window.LocalCache) {
+            window.LocalCache.saveToCache(currentUser.uid, appData.categories, appData.notes);
+        }
     } catch (e) {
         console.error("Error cargando datos de Firestore", e);
         if(window.showToast) window.showToast("Error conectando a la base de datos", true);
+    }
+}
+
+/**
+ * Sincronización silenciosa en segundo plano.
+ * Compara los datos de Firestore con el caché local y actualiza si hay diferencias.
+ * NO bloquea la UI, NO muestra spinners.
+ */
+async function syncFromFirestoreInBackground() {
+    try {
+        const freshCategories = [];
+        const freshNotes = [];
+
+        // Fetch Categorías
+        const qCat = query(collection(db, "categories"), where("userId", "==", currentUser.uid));
+        const catSnap = await getDocs(qCat);
+        catSnap.forEach((docSnap) => {
+            freshCategories.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        // Fetch Notas
+        const qNotes = query(collection(db, "notes"), where("userId", "==", currentUser.uid));
+        const noteSnap = await getDocs(qNotes);
+        noteSnap.forEach((docSnap) => {
+            freshNotes.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        // Comparar si hay diferencias (por cantidad o IDs)
+        const hasChanges =
+            freshCategories.length !== appData.categories.length ||
+            freshNotes.length !== appData.notes.length ||
+            JSON.stringify(freshCategories.map(c => c.id).sort()) !== JSON.stringify(appData.categories.map(c => c.id).sort()) ||
+            JSON.stringify(freshNotes.map(n => n.id).sort()) !== JSON.stringify(appData.notes.map(n => n.id).sort());
+
+        if (hasChanges) {
+            appData.categories = freshCategories;
+            appData.notes = freshNotes;
+
+            // Actualizar caché local
+            if (window.LocalCache) {
+                window.LocalCache.saveToCache(currentUser.uid, appData.categories, appData.notes);
+            }
+
+            // Re-renderizar silenciosamente
+            renderDashboard();
+            if (currentCategoryId) {
+                renderNotes();
+            }
+            console.log('[Sync] Datos actualizados desde Firestore en segundo plano.');
+        } else {
+            console.log('[Sync] Caché local está al día, sin cambios.');
+        }
+    } catch (e) {
+        console.warn('[Sync] Error sincronizando con Firestore en segundo plano:', e);
+        // No mostrar error al usuario, los datos locales siguen funcionando
     }
 }
 
@@ -435,6 +511,7 @@ window.showVerApunte = function (note) {
 };
 
 // --- FIREBASE CRUD API PARA LOS MODALES SEPARADOS ---
+// Patrón: Actualizar localStorage + UI al instante → Firestore en segundo plano
 
 window.isGlobalLoading = false;
 
@@ -454,135 +531,259 @@ window.hideGlobalSpinner = function() {
     if (overlay) overlay.classList.remove('active');
 };
 
+/**
+ * GUARDAR CATEGORÍA — Escritura instantánea + Firestore en segundo plano.
+ */
 window.saveCategoryToApp = async function (catData) {
     try {
-        if (window.showGlobalSpinner) {
-            window.showGlobalSpinner(catData.id ? 'Actualizando categoría...' : 'Creando categoría...', 'fa-solid fa-folder-open');
-        }
         if (catData.id) {
-            // Update
-            const catRef = doc(db, "categories", catData.id);
-            await updateDoc(catRef, {
-                title: catData.title,
-                icon: catData.icon
-            });
+            // ========== ACTUALIZAR CATEGORÍA ==========
+            // 1. Actualizar appData al instante
             const index = appData.categories.findIndex(c => c.id === catData.id);
             if (index > -1) {
                 appData.categories[index].title = catData.title;
                 appData.categories[index].icon = catData.icon;
             }
+
+            // 2. Actualizar localStorage al instante
+            if (window.LocalCache) {
+                window.LocalCache.updateCategoryInCache(currentUser.uid, appData.categories[index]);
+            }
+
+            // 3. Renderizar UI al instante
+            renderDashboard();
+            if (currentCategoryId === catData.id) {
+                currentCategoryTitle.textContent = catData.title;
+            }
             showToast('Categoría actualizada');
+
+            // 4. Sincronizar con Firestore en segundo plano
+            const catRef = doc(db, "categories", catData.id);
+            updateDoc(catRef, {
+                title: catData.title,
+                icon: catData.icon
+            }).catch(err => {
+                console.error('[Sync] Error actualizando categoría en Firestore:', err);
+                showToast('⚠️ Error sincronizando con la nube', true);
+            });
+
         } else {
-            // Create
+            // ========== CREAR CATEGORÍA ==========
+            // 1. Generar ID temporal
+            const tempId = 'temp_' + Date.now();
             const newCat = {
+                id: tempId,
                 title: catData.title,
                 icon: catData.icon,
                 userId: currentUser.uid,
                 createdAt: Date.now()
             };
-            const docRef = await addDoc(collection(db, "categories"), newCat);
-            newCat.id = docRef.id;
+
+            // 2. Agregar a appData al instante
             appData.categories.push(newCat);
+
+            // 3. Guardar en localStorage al instante
+            if (window.LocalCache) {
+                window.LocalCache.updateCategoryInCache(currentUser.uid, newCat);
+            }
+
+            // 4. Renderizar UI al instante
+            renderDashboard();
             showToast('Categoría creada');
+
+            // 5. Enviar a Firestore en segundo plano y reemplazar ID temporal
+            addDoc(collection(db, "categories"), {
+                title: catData.title,
+                icon: catData.icon,
+                userId: currentUser.uid,
+                createdAt: newCat.createdAt
+            }).then(docRef => {
+                // Reemplazar ID temporal por ID real en appData
+                const idx = appData.categories.findIndex(c => c.id === tempId);
+                if (idx > -1) {
+                    appData.categories[idx].id = docRef.id;
+                }
+                // Reemplazar en caché
+                if (window.LocalCache) {
+                    window.LocalCache.replaceTempId(currentUser.uid, 'categories', tempId, docRef.id);
+                }
+                console.log('[Sync] Categoría creada en Firestore con ID:', docRef.id);
+            }).catch(err => {
+                console.error('[Sync] Error creando categoría en Firestore:', err);
+                showToast('⚠️ Error sincronizando con la nube', true);
+            });
         }
 
-        renderDashboard();
-
-        if (currentCategoryId === (catData.id || appData.categories[appData.categories.length-1].id)) {
-            currentCategoryTitle.textContent = catData.title;
-        }
         return true;
     } catch (error) {
         console.error("Error guardando categoría:", error);
         showToast("Error guardando categoría", true);
         return false;
-    } finally {
-        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 
+/**
+ * ELIMINAR CATEGORÍA — Eliminación instantánea + Firestore en segundo plano.
+ */
 window.deleteCategoryFromApp = async function (catId) {
     try {
-        if (window.showGlobalSpinner) window.showGlobalSpinner('Eliminando categoría...', 'fa-solid fa-trash-can');
-        await deleteDoc(doc(db, "categories", catId));
-        
+        // 1. Eliminar de appData al instante
         appData.categories = appData.categories.filter(c => c.id !== catId);
         appData.notes = appData.notes.filter(n => n.categoryId !== catId);
-        
+
+        // 2. Eliminar de localStorage al instante
+        if (window.LocalCache) {
+            window.LocalCache.removeCategoryFromCache(currentUser.uid, catId);
+        }
+
+        // 3. Renderizar UI al instante
         renderDashboard();
         showDashboard();
         showToast('Categoría eliminada');
+
+        // 4. Eliminar de Firestore en segundo plano (solo si no es un ID temporal)
+        if (!catId.startsWith('temp_')) {
+            deleteDoc(doc(db, "categories", catId)).catch(err => {
+                console.error('[Sync] Error eliminando categoría en Firestore:', err);
+                showToast('⚠️ Error sincronizando con la nube', true);
+            });
+        }
+
         return true;
     } catch (error) {
         console.error("Error eliminando categoría:", error);
         showToast("Error eliminando categoría", true);
         return false;
-    } finally {
-        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 
+/**
+ * GUARDAR NOTA — Guardado instantáneo + Firestore en segundo plano.
+ */
 window.saveNoteToApp = async function (noteData) {
     try {
-        if (window.showGlobalSpinner) {
-            window.showGlobalSpinner(noteData.id ? 'Actualizando apunte...' : 'Guardando apunte...', 'fa-solid fa-file-pen');
-        }
         if (noteData.id) {
-            // Actualizar
-            const noteRef = doc(db, "notes", noteData.id);
-            await updateDoc(noteRef, {
-                title: noteData.title,
-                content: noteData.content,
-                date: Date.now()
-            });
+            // ========== ACTUALIZAR NOTA ==========
+            // 1. Actualizar appData al instante
             const index = appData.notes.findIndex(n => n.id === noteData.id);
             if (index > -1) {
                 appData.notes[index].title = noteData.title;
                 appData.notes[index].content = noteData.content;
                 appData.notes[index].date = Date.now();
             }
+
+            // 2. Actualizar localStorage al instante
+            if (window.LocalCache) {
+                window.LocalCache.updateNoteInCache(currentUser.uid, appData.notes[index]);
+            }
+
+            // 3. Renderizar UI al instante
+            renderNotes();
+            renderDashboard();
             showToast('Apunte actualizado');
+
+            // 4. Sincronizar con Firestore en segundo plano (solo si no es temporal)
+            if (!noteData.id.startsWith('temp_')) {
+                const noteRef = doc(db, "notes", noteData.id);
+                updateDoc(noteRef, {
+                    title: noteData.title,
+                    content: noteData.content,
+                    date: appData.notes[index].date
+                }).catch(err => {
+                    console.error('[Sync] Error actualizando apunte en Firestore:', err);
+                    showToast('⚠️ Error sincronizando con la nube', true);
+                });
+            }
+
         } else {
-            // Crear
+            // ========== CREAR NOTA ==========
+            // 1. Generar ID temporal
+            const tempId = 'temp_' + Date.now();
             const newNote = {
+                id: tempId,
                 categoryId: currentCategoryId,
                 userId: currentUser.uid,
                 title: noteData.title,
                 content: noteData.content,
                 date: Date.now()
             };
-            const docRef = await addDoc(collection(db, "notes"), newNote);
-            newNote.id = docRef.id;
+
+            // 2. Agregar a appData al instante
             appData.notes.push(newNote);
+
+            // 3. Guardar en localStorage al instante
+            if (window.LocalCache) {
+                window.LocalCache.updateNoteInCache(currentUser.uid, newNote);
+            }
+
+            // 4. Renderizar UI al instante
+            renderNotes();
+            renderDashboard();
             showToast('¡Apunte guardado!');
+
+            // 5. Enviar a Firestore en segundo plano y reemplazar ID temporal
+            addDoc(collection(db, "notes"), {
+                categoryId: currentCategoryId,
+                userId: currentUser.uid,
+                title: noteData.title,
+                content: noteData.content,
+                date: newNote.date
+            }).then(docRef => {
+                // Reemplazar ID temporal por ID real en appData
+                const idx = appData.notes.findIndex(n => n.id === tempId);
+                if (idx > -1) {
+                    appData.notes[idx].id = docRef.id;
+                }
+                // Reemplazar en caché
+                if (window.LocalCache) {
+                    window.LocalCache.replaceTempId(currentUser.uid, 'notes', tempId, docRef.id);
+                }
+                console.log('[Sync] Apunte creado en Firestore con ID:', docRef.id);
+            }).catch(err => {
+                console.error('[Sync] Error creando apunte en Firestore:', err);
+                showToast('⚠️ Error sincronizando con la nube', true);
+            });
         }
-        renderNotes();
-        renderDashboard();
+
         return true;
     } catch (error) {
         console.error("Error guardando apunte:", error);
         showToast("Error guardando apunte", true);
         return false;
-    } finally {
-        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 
+/**
+ * ELIMINAR NOTA — Eliminación instantánea + Firestore en segundo plano.
+ */
 window.deleteNoteFromApp = async function (noteId) {
     try {
-        if (window.showGlobalSpinner) window.showGlobalSpinner('Eliminando apunte...', 'fa-solid fa-trash-can');
-        await deleteDoc(doc(db, "notes", noteId));
+        // 1. Eliminar de appData al instante
         appData.notes = appData.notes.filter(n => n.id !== noteId);
+
+        // 2. Eliminar de localStorage al instante
+        if (window.LocalCache) {
+            window.LocalCache.removeNoteFromCache(currentUser.uid, noteId);
+        }
+
+        // 3. Renderizar UI al instante
         renderNotes();
         renderDashboard();
         showToast('Apunte eliminado');
+
+        // 4. Eliminar de Firestore en segundo plano (solo si no es temporal)
+        if (!noteId.startsWith('temp_')) {
+            deleteDoc(doc(db, "notes", noteId)).catch(err => {
+                console.error('[Sync] Error eliminando apunte en Firestore:', err);
+                showToast('⚠️ Error sincronizando con la nube', true);
+            });
+        }
+
         return true;
     } catch (error) {
         console.error("Error eliminando apunte:", error);
         showToast("Error eliminando apunte", true);
         return false;
-    } finally {
-        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
     }
 };
 
@@ -623,6 +824,10 @@ function setupEventListeners() {
     if (btnLogout) {
         btnLogout.addEventListener('click', async () => {
             try {
+                // Limpiar caché del usuario al cerrar sesión
+                if (currentUser && window.LocalCache) {
+                    window.LocalCache.clearCache(currentUser.uid);
+                }
                 await signOut(auth);
                 // La redirección ocurrirá automáticamente por onAuthStateChanged
             } catch (error) {
